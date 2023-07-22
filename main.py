@@ -2,7 +2,7 @@ import httpx
 import json
 
 
-def get_img(access_token, url, media_type,user_id, post_id)->str:
+def get_img(access_token, media_type,user_id, post_id)->str:
     """Takes in access token of facebook app, url of facebook post, media type (img or video), user_id, post_id
         returns the url/src of video or image
 
@@ -21,11 +21,15 @@ def get_img(access_token, url, media_type,user_id, post_id)->str:
         raise ValueError("Invalid sim type. Expected one of: %s" % media_types)
     
     if media_type == 'video':
-        r = httpx.get('{}?access_token={}'.format(url, access_token))
-        for thumbnail in json.loads(r.text)['data']:
-            if(thumbnail['is_preferred']==True):
-                return(thumbnail['uri'])
-                break
+        r = httpx.get('https://graph.facebook.com/v17.0/{}/thumbnails?access_token={}'.format(post_id, access_token))
+        try:
+            for thumbnail in json.loads(r.text)['data']:
+                if(thumbnail['is_preferred']==True):
+                    return(thumbnail['uri'])
+    
+        except KeyError:
+            raise KeyError('Unsupported get request. Object with provided user and post ID does not exist, cannot be loaded due to missing permissions, or does not support this operation')
+
     elif media_type == 'img':
         r = httpx.get('https://graph.facebook.com/{}_{}?fields=full_picture,picture&access_token={}'.format(user_id, post_id,access_token))
         try:
@@ -33,5 +37,3 @@ def get_img(access_token, url, media_type,user_id, post_id)->str:
             return image_url
         except KeyError:
             raise KeyError('Unsupported get request. Object with provided user and post ID does not exist, cannot be loaded due to missing permissions, or does not support this operation')
-        
-        
